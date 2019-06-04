@@ -75,7 +75,7 @@ class ServerChildHandler extends ChannelInboundHandlerAdapter {
         Server.clients.add(ctx.channel());//假如有多个客户端链接那么 需要把新接入的客户端加入通道组
 
         //Successful connection
-        ByteBuf buf = Unpooled.copiedBuffer("server : welcome into ".getBytes());
+        ByteBuf buf = Unpooled.copiedBuffer("server : welcome  ".getBytes());
         Server.clients.writeAndFlush(buf);
 
     }
@@ -89,7 +89,7 @@ class ServerChildHandler extends ChannelInboundHandlerAdapter {
         buf = (ByteBuf)msg;
         byte[] bytes = new byte[buf.readableBytes()];
         buf.getBytes(buf.readerIndex(), bytes);
-//        System.out.println("server : " + new String(bytes));
+        System.out.println("server " + new String(bytes));
         Server.clients.writeAndFlush(buf);
     }
 }

@@ -24,6 +24,7 @@ public class ClientFrame extends Frame {
     public TextArea mTextArea = new TextArea();
     ;
     public TextField mTextField = new TextField();
+    private static ClientFrame sClientFrame;
 
     public ClientFrame() {
 
@@ -35,7 +36,15 @@ public class ClientFrame extends Frame {
         mTextField.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                ClientFrameHandler.sendMsg(mTextField.getText());
                 mTextField.setText(" ");
+
+            }
+        });
+        ClientFrameHandler.getInstance().setReadMsgInterface(new ClientFrameHandler.ReadMsgInterface() {
+            @Override
+            public void readMsg(String string) {
+                mTextArea.append(string+"\n");
             }
         });
         addWindowListener(new WindowAdapter() {
@@ -49,13 +58,12 @@ public class ClientFrame extends Frame {
     }
 
     public static void main(String[] args) {
-        ClientFrame clientFrame = new ClientFrame();
+        sClientFrame = new ClientFrame();
         //线程池
         EventLoopGroup group = new NioEventLoopGroup(1);//nio 的线程池
         //当需要引导客户端或一些无连接协议时，需要使用Bootstrap类,创建一个新的 Bootstrap 来创建和连接到新的客户端管道
         Bootstrap bootstrap = new Bootstrap();
         try {
-
             //ChannelFuture 异步通知  Netty提供了ChannelFuture接口，
             // 其addListener()方法注册了一个ChannelFutureListener，以便在某个操作完成时（无论是否成功）得到通知。
             //ChannelFuture 是个观察者
@@ -83,7 +91,7 @@ class ClientFrameChannelInitializer extends ChannelInitializer {
 
     @Override
     protected void initChannel(Channel ch) throws Exception {
-        ch.pipeline().addLast(new ClientFrameHandler());
+        ch.pipeline().addLast(ClientFrameHandler.getInstance());
     }
 }
 
@@ -92,13 +100,30 @@ class ClientFrameChannelInitializer extends ChannelInitializer {
 class ClientFrameHandler extends ChannelInboundHandlerAdapter {
 
 
+   static ClientFrameHandler mClientFrameHandler = new ClientFrameHandler();
+
+    public static  ClientFrameHandler getInstance(){
+        return mClientFrameHandler;
+    }
+    interface ReadMsgInterface{
+        void readMsg(String string);
+    }
+
+    ReadMsgInterface mReadMsgInterface;
+
+    public void setReadMsgInterface(ReadMsgInterface readMsgInterface) {
+        mReadMsgInterface = readMsgInterface;
+    }
+
+    static ChannelHandlerContext mChannelHandlerContext;
+
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         System.out.println(ctx);
         //第一次链接发个消息 channle 第一次连上可用，写出一个字符串
         ByteBuf buf = Unpooled.copiedBuffer("link start".getBytes());
         ctx.writeAndFlush(buf);
-
+        mChannelHandlerContext = ctx;
     }
 
     @Override
@@ -109,7 +134,16 @@ class ClientFrameHandler extends ChannelInboundHandlerAdapter {
         buf = (ByteBuf)msg;
         byte[] bytes = new byte[buf.readableBytes()];
         buf.getBytes(buf.readerIndex(), bytes);
-        String s = bytes.toString();
-        System.out.println(s);
+        String s = new String(bytes);
+        System.out.println("获得消息: "+s);
+        if (mReadMsgInterface != null) {
+            mReadMsgInterface.readMsg(s);
+        }
+    }
+
+    public static void sendMsg(String msg) {
+        System.out.println("发送消息"+msg);
+        ByteBuf buf = Unpooled.copiedBuffer(msg.getBytes());
+        mChannelHandlerContext.writeAndFlush(buf);
     }
 }
