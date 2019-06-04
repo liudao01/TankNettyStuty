@@ -1,3 +1,12 @@
+import java.awt.BorderLayout;
+import java.awt.Frame;
+import java.awt.TextArea;
+import java.awt.TextField;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -8,10 +17,39 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 /**
  * @author liuml
  * @explain
- * @time 2019-06-03 17:21
+ * @time 2019-06-04 15:02
  */
-public class Client {
+public class ClientFrame extends Frame {
+
+    public TextArea mTextArea = new TextArea();
+    ;
+    public TextField mTextField = new TextField();
+
+    public ClientFrame() {
+
+        this.setSize(600, 400);
+        this.setLocation(100, 200);
+        //BorderLayout布置容器的边框布局,它可以对容器组件进行安排,并调整其大小,使其符合下列五个区域:北、南、东、西、中,
+        this.add(mTextArea, BorderLayout.CENTER);
+        this.add(mTextField, BorderLayout.SOUTH);
+        mTextField.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                mTextField.setText(" ");
+            }
+        });
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                super.windowClosed(e);
+                System.exit(0);
+            }
+        });
+        this.setVisible(true);
+    }
+
     public static void main(String[] args) {
+        ClientFrame clientFrame = new ClientFrame();
         //线程池
         EventLoopGroup group = new NioEventLoopGroup(1);//nio 的线程池
         //当需要引导客户端或一些无连接协议时，需要使用Bootstrap类,创建一个新的 Bootstrap 来创建和连接到新的客户端管道
@@ -23,7 +61,7 @@ public class Client {
             //ChannelFuture 是个观察者
             ChannelFuture channelFuture = bootstrap.group(group)
                 .channel(NioSocketChannel.class)//指定连接到服务器的channel 的类型是nio的
-                .handler(new ClientChannelInitializer())//handler 的意思 发生事件的时候交给ClientChannelInitializer 处理
+                .handler(new ClientFrameChannelInitializer())//handler 的意思 发生事件的时候交给ClientChannelInitializer 处理
                 .connect("localhost", 8888);
 
             channelFuture.sync();// 服务器异步创建绑定
@@ -34,26 +72,24 @@ public class Client {
 
         } catch (InterruptedException e) {
             e.printStackTrace();
-        }finally {
-            group.shutdownGracefully();//释放资源终结
         }
-
     }
+
+
 }
 
 //ChannelInitializer 它提供了一种简单的方法，可以在通道注册到其EventLoop后对其进行初始化。
-class ClientChannelInitializer extends ChannelInitializer {
+class ClientFrameChannelInitializer extends ChannelInitializer {
 
     @Override
     protected void initChannel(Channel ch) throws Exception {
-        ch.pipeline().addLast(new ClientHandler());
+        ch.pipeline().addLast(new ClientFrameHandler());
     }
 }
 
 //ChannelInboundHandler的一个简单实现，默认情况下不会做任何处理，
 // 只是简单的将操作通过fire*方法传递到ChannelPipeline中的下一个ChannelHandler中让链中的下一个ChannelHandler去处理。
-class ClientHandler extends ChannelInboundHandlerAdapter {
-
+class ClientFrameHandler extends ChannelInboundHandlerAdapter {
 
 
     @Override
@@ -73,14 +109,7 @@ class ClientHandler extends ChannelInboundHandlerAdapter {
         buf = (ByteBuf)msg;
         byte[] bytes = new byte[buf.readableBytes()];
         buf.getBytes(buf.readerIndex(), bytes);
-        System.out.println( new String(bytes));
+        String s = bytes.toString();
+        System.out.println(s);
     }
 }
-
-
-
-
-
-
-
-

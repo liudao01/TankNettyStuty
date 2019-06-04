@@ -40,6 +40,18 @@ public class Server {
                 .bind(8888)
                 .sync();// 服务器异步创建绑定
             System.out.println("server started");
+
+            future.addListener(new ChannelFutureListener() {
+                @Override
+                public void operationComplete(ChannelFuture future) throws Exception {
+                    if(!future.isSuccess()) {
+                        System.out.println("not connected!");
+                    } else {
+                        System.out.println("connected!");
+                    }
+                }
+            });
+
             //结束后关闭 关闭服务器通道
             future.channel().closeFuture().sync();
         } catch (InterruptedException e) {
