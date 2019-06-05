@@ -20,6 +20,7 @@ public class Client {
     }
 
     public void connect() {
+
         //线程池
         EventLoopGroup group = new NioEventLoopGroup(1);//nio 的线程池
         //当需要引导客户端或一些无连接协议时，需要使用Bootstrap类,创建一个新的 Bootstrap 来创建和连接到新的客户端管道
@@ -70,6 +71,7 @@ public class Client {
 
     /**
      * 发送消息
+     *
      * @param msg
      */
     public void sendMsg(String msg) {
@@ -85,7 +87,9 @@ class ClientChannelInitializer extends ChannelInitializer {
 
     @Override
     protected void initChannel(Channel ch) throws Exception {
-        ch.pipeline().addLast(new ClientHandler());
+        ch.pipeline()
+            .addLast(new TankMsgEncoder())//客户端加入编码器
+            .addLast(new ClientHandler());
     }
 }
 
@@ -98,8 +102,11 @@ class ClientHandler extends ChannelInboundHandlerAdapter {
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         System.out.println(ctx);
         //第一次链接发个消息 channle 第一次连上可用，写出一个字符串
-        ByteBuf buf = Unpooled.copiedBuffer("link start".getBytes());
-        ctx.writeAndFlush(buf);
+//        ByteBuf buf = Unpooled.copiedBuffer("link start".getBytes());
+//        ctx.writeAndFlush(buf);
+
+        //发送坦克的位置
+        ctx.writeAndFlush(new TankMsg(5, 10));
     }
 
     @Override

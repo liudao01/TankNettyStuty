@@ -7,6 +7,7 @@ import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.util.ReferenceCountUtil;
 import io.netty.util.concurrent.GlobalEventExecutor;
 
 /**
@@ -22,6 +23,8 @@ public class Server {
 
     public void serverStart()  {
         //线程池
+        //bossGroup，这个线程池处理客户端的连接请求，并将accept的连接注册到subReactor的其中一个线程上；
+        //workerGroup，负责处理已建立的客户端通道上的数据读写
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);//nio 的线程池
         EventLoopGroup workerGroup = new NioEventLoopGroup(2);//用于工作的
 
@@ -35,7 +38,9 @@ public class Server {
                     @Override
                     protected void initChannel(SocketChannel ch) throws Exception {
                         ChannelPipeline pipeline = ch.pipeline();
-                        pipeline.addLast(new ServerChildHandler());//// 客户端触发操作
+                        pipeline
+                            .addLast(new TankMsgDeCoder())//服务端加入解码器
+                            .addLast(new ServerChildHandler());//// 客户端触发操作
                     }
                 })
                 .bind(8888)
@@ -79,6 +84,7 @@ class ServerChildHandler extends ChannelInboundHandlerAdapter {
         ByteBuf buf = Unpooled.copiedBuffer("server : welcome  ".getBytes());
         Server.clients.writeAndFlush(buf);
 
+
     }
 
     @Override
@@ -86,8 +92,14 @@ class ServerChildHandler extends ChannelInboundHandlerAdapter {
         //通道里读数据
 //        System.out.println("get client data");
         ByteBuf buf = null;
+        try {
+            TankMsg tm = (TankMsg)msg;
 
-        buf = (ByteBuf)msg;
+            System.out.println(tm);
+        } finally {
+            ReferenceCountUtil.release(msg);
+        }
+       /* buf = (ByteBuf)msg;
         byte[] bytes = new byte[buf.readableBytes()];
         buf.getBytes(buf.readerIndex(), bytes);
         String s = new String(bytes);
@@ -101,7 +113,7 @@ class ServerChildHandler extends ChannelInboundHandlerAdapter {
             ctx.close();
         } else {
             Server.clients.writeAndFlush(buf);
-        }
+        }*/
     }
 
     /**
