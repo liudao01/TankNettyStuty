@@ -19,7 +19,8 @@ public class Server {
     //    通道组
     public static ChannelGroup clients = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
 
-    public static void main(String[] args) {
+
+    public void serverStart()  {
         //线程池
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);//nio 的线程池
         EventLoopGroup workerGroup = new NioEventLoopGroup(2);//用于工作的
@@ -91,8 +92,10 @@ class ServerChildHandler extends ChannelInboundHandlerAdapter {
         buf.getBytes(buf.readerIndex(), bytes);
         String s = new String(bytes);
         System.out.println("server " + s);
+        ServerFrame.INSTANCE.updateClientMsg(s);
         if (s.equals("_bye_")) {
             //客户端请求退出
+        ServerFrame.INSTANCE.updateServerMsg(s);
             System.out.println("客户端请求退出");
             Server.clients.remove(ctx.channel());
             ctx.close();
