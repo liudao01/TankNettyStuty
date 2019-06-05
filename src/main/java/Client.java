@@ -11,7 +11,15 @@ import io.netty.channel.socket.nio.NioSocketChannel;
  * @time 2019-06-03 17:21
  */
 public class Client {
+
+    private Channel sChannel;
+
     public static void main(String[] args) {
+        Client c = new Client();
+        c.connect();
+    }
+
+    public void connect() {
         //线程池
         EventLoopGroup group = new NioEventLoopGroup(1);//nio 的线程池
         //当需要引导客户端或一些无连接协议时，需要使用Bootstrap类,创建一个新的 Bootstrap 来创建和连接到新的客户端管道
@@ -29,16 +37,35 @@ public class Client {
             channelFuture.sync();// 服务器异步创建绑定
             System.out.println("client started");
 
+            channelFuture.addListener(new ChannelFutureListener() {
+                @Override
+                public void operationComplete(ChannelFuture future) throws Exception {
+                    if (!future.isSuccess()) {
+                        System.out.println("not connected!");
+                    } else {
+                        sChannel = channelFuture.channel();
+                        System.out.println("connected!");
+                    }
+                }
+            });
+
             //服务器同步连接断开时,这句代码执行
             channelFuture.channel().closeFuture().sync();
 
         } catch (InterruptedException e) {
             e.printStackTrace();
-        }finally {
+        } finally {
             group.shutdownGracefully();//释放资源终结
         }
 
     }
+
+    public void sendMsg(String msg) {
+        System.out.println("发送消息" + msg);
+        ByteBuf buf = Unpooled.copiedBuffer(msg.getBytes());
+        sChannel.writeAndFlush(buf);
+    }
+
 }
 
 //ChannelInitializer 它提供了一种简单的方法，可以在通道注册到其EventLoop后对其进行初始化。
@@ -55,14 +82,12 @@ class ClientChannelInitializer extends ChannelInitializer {
 class ClientHandler extends ChannelInboundHandlerAdapter {
 
 
-
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         System.out.println(ctx);
         //第一次链接发个消息 channle 第一次连上可用，写出一个字符串
         ByteBuf buf = Unpooled.copiedBuffer("link start".getBytes());
         ctx.writeAndFlush(buf);
-
     }
 
     @Override
@@ -73,7 +98,9 @@ class ClientHandler extends ChannelInboundHandlerAdapter {
         buf = (ByteBuf)msg;
         byte[] bytes = new byte[buf.readableBytes()];
         buf.getBytes(buf.readerIndex(), bytes);
-        System.out.println( new String(bytes));
+        String msgAccepted = new String(bytes);
+        System.out.println(msgAccepted);
+        ClientFrame.sClientFrame.updateText(msgAccepted);
     }
 }
 
