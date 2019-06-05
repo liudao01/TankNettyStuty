@@ -25,6 +25,7 @@ public class ClientFrame extends Frame {
     ;
     public TextField mTextField = new TextField();
     private static ClientFrame sClientFrame;
+    private static Channel sChannel;
 
     public ClientFrame() {
 
@@ -36,7 +37,7 @@ public class ClientFrame extends Frame {
         mTextField.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                ClientFrameHandler.sendMsg(mTextField.getText());
+                sendMsg(mTextField.getText());
                 mTextField.setText(" ");
 
             }
@@ -44,7 +45,7 @@ public class ClientFrame extends Frame {
         ClientFrameHandler.getInstance().setReadMsgInterface(new ClientFrameHandler.ReadMsgInterface() {
             @Override
             public void readMsg(String string) {
-                mTextArea.append(string+"\n");
+                mTextArea.append(string + "\n");
             }
         });
         addWindowListener(new WindowAdapter() {
@@ -55,6 +56,12 @@ public class ClientFrame extends Frame {
             }
         });
         this.setVisible(true);
+    }
+
+    public static void sendMsg(String msg) {
+        System.out.println("发送消息" + msg);
+        ByteBuf buf = Unpooled.copiedBuffer(msg.getBytes());
+        sChannel.writeAndFlush(buf);
     }
 
     public static void main(String[] args) {
@@ -74,7 +81,17 @@ public class ClientFrame extends Frame {
 
             channelFuture.sync();// 服务器异步创建绑定
             System.out.println("client started");
-
+            channelFuture.addListener(new ChannelFutureListener() {
+                @Override
+                public void operationComplete(ChannelFuture future) throws Exception {
+                    if (!future.isSuccess()) {
+                        System.out.println("not connected!");
+                    } else {
+                        sChannel = channelFuture.channel();
+                        System.out.println("connected!");
+                    }
+                }
+            });
             //服务器同步连接断开时,这句代码执行
             channelFuture.channel().closeFuture().sync();
 
@@ -100,12 +117,13 @@ class ClientFrameChannelInitializer extends ChannelInitializer {
 class ClientFrameHandler extends ChannelInboundHandlerAdapter {
 
 
-   static ClientFrameHandler mClientFrameHandler = new ClientFrameHandler();
+    static ClientFrameHandler mClientFrameHandler = new ClientFrameHandler();
 
-    public static  ClientFrameHandler getInstance(){
+    public static ClientFrameHandler getInstance() {
         return mClientFrameHandler;
     }
-    interface ReadMsgInterface{
+
+    interface ReadMsgInterface {
         void readMsg(String string);
     }
 
@@ -115,7 +133,6 @@ class ClientFrameHandler extends ChannelInboundHandlerAdapter {
         mReadMsgInterface = readMsgInterface;
     }
 
-    static ChannelHandlerContext mChannelHandlerContext;
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -123,7 +140,6 @@ class ClientFrameHandler extends ChannelInboundHandlerAdapter {
         //第一次链接发个消息 channle 第一次连上可用，写出一个字符串
         ByteBuf buf = Unpooled.copiedBuffer("link start".getBytes());
         ctx.writeAndFlush(buf);
-        mChannelHandlerContext = ctx;
     }
 
     @Override
@@ -135,15 +151,11 @@ class ClientFrameHandler extends ChannelInboundHandlerAdapter {
         byte[] bytes = new byte[buf.readableBytes()];
         buf.getBytes(buf.readerIndex(), bytes);
         String s = new String(bytes);
-        System.out.println("获得消息: "+s);
+        System.out.println("获得消息: " + s);
         if (mReadMsgInterface != null) {
             mReadMsgInterface.readMsg(s);
         }
     }
 
-    public static void sendMsg(String msg) {
-        System.out.println("发送消息"+msg);
-        ByteBuf buf = Unpooled.copiedBuffer(msg.getBytes());
-        mChannelHandlerContext.writeAndFlush(buf);
-    }
+
 }
