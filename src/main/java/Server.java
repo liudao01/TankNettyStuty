@@ -44,7 +44,7 @@ public class Server {
             future.addListener(new ChannelFutureListener() {
                 @Override
                 public void operationComplete(ChannelFuture future) throws Exception {
-                    if(!future.isSuccess()) {
+                    if (!future.isSuccess()) {
                         System.out.println("not connected!");
                     } else {
                         System.out.println("connected!");
@@ -57,7 +57,7 @@ public class Server {
         } catch (InterruptedException e) {
             e.printStackTrace();
         } finally {
-            //结束  shutdown  我的五杀被终结 哈哈
+            //结束  shutdown 单词 终止  LOL中连杀被终结播放的语音
             workerGroup.shutdownGracefully();//// 释放线程池资源
             bossGroup.shutdownGracefully();
         }
@@ -89,7 +89,38 @@ class ServerChildHandler extends ChannelInboundHandlerAdapter {
         buf = (ByteBuf)msg;
         byte[] bytes = new byte[buf.readableBytes()];
         buf.getBytes(buf.readerIndex(), bytes);
-        System.out.println("server " + new String(bytes));
-        Server.clients.writeAndFlush(buf);
+        String s = new String(bytes);
+        System.out.println("server " + s);
+        if (s.equals("_bye_")) {
+            //客户端请求退出
+            System.out.println("客户端请求退出");
+            Server.clients.remove(ctx.channel());
+            ctx.close();
+        } else {
+            Server.clients.writeAndFlush(buf);
+        }
+    }
+
+    /**
+     * 非正常退出处理
+     * @param ctx
+     * @param cause
+     * @throws Exception
+     */
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        cause.printStackTrace();
+        //删除出现异常的客户端channle，并关闭连接
+        Server.clients.remove(ctx.channel());
+        ctx.close();
+
     }
 }
+
+
+
+
+
+
+
+

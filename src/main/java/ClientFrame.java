@@ -32,6 +32,7 @@ public class ClientFrame extends Frame {
             @Override
             public void windowClosing(WindowEvent e) {
                 super.windowClosed(e);
+                mClient.closeConnect();
                 System.exit(0);
             }
         });

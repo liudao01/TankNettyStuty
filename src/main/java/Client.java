@@ -60,6 +60,18 @@ public class Client {
 
     }
 
+
+    /**
+     * 发送关闭链接消息
+     */
+    public void closeConnect() {
+        this.sendMsg("_bye_");
+    }
+
+    /**
+     * 发送消息
+     * @param msg
+     */
     public void sendMsg(String msg) {
         System.out.println("发送消息" + msg);
         ByteBuf buf = Unpooled.copiedBuffer(msg.getBytes());
