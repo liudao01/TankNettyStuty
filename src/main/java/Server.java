@@ -39,7 +39,7 @@ public class Server {
                     protected void initChannel(SocketChannel ch) throws Exception {
                         ChannelPipeline pipeline = ch.pipeline();
                         pipeline
-                            .addLast(new TankMsgDeCoder())//服务端加入解码器
+                            .addLast(new TankMsgDecoder())//服务端加入解码器
                             .addLast(new ServerChildHandler());//// 客户端触发操作
                     }
                 })

@@ -9,7 +9,7 @@ import io.netty.handler.codec.ByteToMessageDecoder;
  * @explain
  * @time 2019-06-05 15:16
  */
-public class TankMsgDeCoder extends ByteToMessageDecoder {
+public class TankMsgDecoder extends ByteToMessageDecoder {
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
         if(in.readableBytes()<8)return;
